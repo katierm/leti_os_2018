@@ -39,13 +39,30 @@ outputAL PROC NEAR
 outputAL ENDP
 
 ROUT PROC FAR
-     pusha
+     
+ cli                   
+    mov cs:KEEP_SS, ss     
+    mov cs:KEEP_SP, sp     
+    mov sp, ASTACK           
+    mov ss, sp             
+    mov sp, 100h           
+
+pusha
+
     in al,60h          ; al = скан-код
     cmp al, REQ_KEY    
     je do_req
     popa
+
+    cli                       
+    mov sp, cs:KEEP_SS                     
+    mov ss, sp                
+    mov sp, cs:KEEP_SP        
+    sti 
+
     jmp dword ptr cs:[KEEP_IP]  ; стандартный обработчик
     do_req:
+	
         in al, 61h  ; al = значение порта управления клавиатурой
         mov ah, al
         or al, 80h  ; установить бит разрешения для клавиатуры
@@ -85,13 +102,24 @@ ROUT PROC FAR
     popa
     mov al, 20h
     out 20h, al
+
+
+    cli                       
+    mov sp, cs:KEEP_SS                    
+    mov ss, sp                
+    mov sp, cs:KEEP_SP        
+    sti                       
+
+
     iret
 
    ;;;;;;;;;;;;
-
+	
     STRN DB 'ABC'
     KEEP_IP DW 0
     KEEP_CS DW 0
+    KEEP_SS DW 0h
+    KEEP_SP DW 0h
     KEEP_PSP DW 0h
     last_byte:
 ROUT ENDP
@@ -101,14 +129,13 @@ SET_INT	 PROC NEAR
     pusha
     push ds
     push es
-   
+    
     mov ah, 35h
     mov al, 1Ch
     int 21h
  
     mov cs:KEEP_IP, bx   
     mov cs:KEEP_CS, es
-    
     mov ax, SEG ROUT
     mov ds, ax
     mov dx, offset ROUT
