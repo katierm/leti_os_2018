@@ -9,11 +9,52 @@ DATA SEGMENT
     INT_IS_LOADED DB 'INTERRUPTION IS ALREADY LOADED !!!',0AH,0DH,'$'
     EXIT_FROM_INTERR DB 'EXIT FROM INTERRUPTION',0AH,0DH,'$'
     INT_NOT_LOADED DB 'INTERRUPTION NOT LOADED!!!',0AH,0DH,'$'
+COI DB 'COUNT OF INTS=    h', 0AH, 0DH, '$'
 	
 DATA ENDS
 
 CODE SEGMENT
-	 ASSUME CS:CODE, DS:CODE, ES:CODE, SS:ASTACK     
+	 ASSUME CS:CODE, DS:CODE, ES:CODE, SS:ASTACK    
+
+
+
+TETR_TO_HEX PROC near
+	and AL,0Fh
+	cmp AL,09
+	jbe NEXT
+	add AL,07
+	NEXT: add AL,30h
+	ret
+TETR_TO_HEX ENDP
+
+BYTE_TO_HEX PROC near
+	push CX
+	mov AH,AL
+	call TETR_TO_HEX
+	xchg AL,AH
+	mov CL,4
+	shr AL,CL
+	call TETR_TO_HEX ;в AL старшая цифра
+	pop CX ;в AH младшая
+	ret
+BYTE_TO_HEX ENDP
+
+WRD_TO_HEX PROC near ;перевод в 16 с/с 16-ти разрядного числа
+	push BX          ; в AX - число, DI - адрес последнего символа
+	mov BH,AH        ;  now it aclually converts byte to string, last sybmol adress is di
+	call BYTE_TO_HEX
+	mov [DI],AH
+	dec DI
+	mov [DI],AL
+	dec DI
+	mov AL,BH
+	call BYTE_TO_HEX
+	mov [DI],AH
+	dec DI
+	mov [DI],AL
+	pop BX
+	ret
+WRD_TO_HEX ENDP 
 
 PRINT PROC NEAR 
     pusha
@@ -42,10 +83,21 @@ ROUT PROC FAR
     jmp entry
     	STRN DB 'ABC'
     entry:
+
+	cli                   
+    mov cs:KEEP_SS, ss    
+    mov cs:KEEP_SP, sp     
+    mov sp, astack           
+    mov ss, sp            
+    mov sp, 100h          
+    sti      
+	
     	pusha
 	push es
 	push ds
+		
 	
+		
 	;getCurs
 
 	mov ah,03h   
@@ -53,9 +105,22 @@ ROUT PROC FAR
 	int 10h        
 	push dx      
 	push cx      
+	mov bp, offset COI	; es:bp - наша строка
+		mov di, offset COI+16
+		mov ax, cs:COUNTER
+		call WRD_TO_HEX	
+
 
 	call outputAL 
-
+	       
+	mov ah, 13h		 
+	mov al, 1h       
+	mov dh, 22       
+	mov dl, 40        
+	mov cx, 28         
+	mov bl, 99h       
+	mov bh, 0         
+	int 10h         
 	; setCurs  
 	pop cx            
 	pop dx            
@@ -70,11 +135,20 @@ ROUT PROC FAR
     popa
     mov al, 20h
     out 20h, al
+;;;
+	 cli                    
+    mov sp, cs:KEEP_SS       
+    mov ss, sp                
+    mov sp, cs:KEEP_SP       
+    sti      
+;;;
     iret
     KEEP_CS DW 0
     KEEP_IP DW 0
     KEEP_PSP DW 0h
-    COUNTER DW 0h
+    KEEP_SS DW 0h
+    KEEP_SP DW 0h
+COUNTER DW 0h
     last_byte:
 ROUT ENDP
 
