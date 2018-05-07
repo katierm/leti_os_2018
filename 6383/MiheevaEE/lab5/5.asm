@@ -46,6 +46,7 @@ ROUT PROC FAR
     mov sp, ASTACK           
     mov ss, sp             
     mov sp, 100h           
+	sti   
 
 pusha
 
@@ -131,7 +132,7 @@ SET_INT	 PROC NEAR
     push es
     
     mov ah, 35h
-    mov al, 1Ch
+    mov al, 09h
     int 21h
  
     mov cs:KEEP_IP, bx   
@@ -140,7 +141,7 @@ SET_INT	 PROC NEAR
     mov ds, ax
     mov dx, offset ROUT
     mov ah, 25h
-    mov al, 1Ch
+    mov al, 09h
     int 21h
     ;end
     mov dx, offset last_byte
@@ -165,7 +166,7 @@ CHECK_INT PROC NEAR ; if set then al=1, else al=0
     push es
 
     mov ah, 35h
-    mov al, 1Ch
+    mov al, 09h
     int 21h
 
     mov dx, es:KEEP_IP
@@ -200,7 +201,7 @@ DELETE_INT PROC NEAR
     push ds
     push es
     mov ah, 35h
-    mov al, 1Ch
+    mov al, 09h
     int 21h
 
     push es
@@ -208,7 +209,7 @@ DELETE_INT PROC NEAR
     mov ax, es:KEEP_CS
     mov ds, ax
     mov ah, 25h
-    mov al, 1Ch
+    mov al, 09h
     int 21h
 
     pop es
